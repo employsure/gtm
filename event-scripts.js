@@ -43,10 +43,12 @@ function loopThroughYouTubeEmbeds() {
 function addEnableJsapiParameter(iframe) {
   // Get the src attribute of the iframe.
   let src = iframe.getAttribute("src");
+  // Collect url for origin.
+  let host = "https://" + location.host;
   // Check if the src attribute already contains the ?enablejsapi=1 parameter.
-  if (!src.includes("?enablejsapi=1")) {
+  if (!src.includes("?enablejsapi=1&origin=" + host)) {
     // Add the ?enablejsapi=1 parameter to the src attribute.
-    src += "?enablejsapi=1";
+    src += "?enablejsapi=1&origin=" + host;
     // Set the src attribute of the iframe to the new value.
     iframe.setAttribute("src", src);
   }
