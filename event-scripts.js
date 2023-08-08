@@ -81,7 +81,7 @@ window.drift.on("phoneCapture", function () {
 });
 }
 
-if(Genesys) {
+if(window.Genesys) {
 // PureCloud Conversation Start Event
 Genesys("subscribe", "Conversations.started", function () {
   dataLayer.push({ event: "chatOpen" });
