@@ -66,6 +66,7 @@ forms.forEach(function (form) {
   }
 });
 
+if(window.drift) {
 // Push Conversion Start Event
 window.drift.on("startConversation", function () {
   dataLayer.push({ event: "chatOpen" });
@@ -78,7 +79,9 @@ window.drift.on("emailCapture", function () {
 window.drift.on("phoneCapture", function () {
   dataLayer.push({ event: "chatPhoneCapture" });
 });
+}
 
+if(Genesys) {
 // PureCloud Conversation Start Event
 Genesys("subscribe", "Conversations.started", function () {
   dataLayer.push({ event: "chatOpen" });
@@ -107,3 +110,4 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
     dataLayer.push({ event: "chatPhoneCapture" });
   }
 });
+}
