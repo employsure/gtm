@@ -10,13 +10,13 @@ ytAPI.onload = function () {
 };
 document.body.appendChild(ytAPI);
 
-function loopThroughYouTubeEmbeds() {
+async function loopThroughYouTubeEmbeds() {
   // Get all of the YouTube embeds on the page.
   const embeds = document.querySelectorAll('iframe[src*="youtube.com/embed/"]');
   // Loop through the embeds and set up event listeners.
   for (const embed of embeds) {
     // Add the ?enablejsapi=1 parameter to the embed.
-    addEnableJsapiParameter(embed);
+    await addEnableJsapiParameter(embed);
     // Create a new YouTube player object.
     const player = new YT.Player(embed, {
       events: {
@@ -40,7 +40,7 @@ function loopThroughYouTubeEmbeds() {
     }
   }
 }
-function addEnableJsapiParameter(iframe) {
+async function addEnableJsapiParameter(iframe) {
   // Get the src attribute of the iframe.
   let src = iframe.getAttribute("src");
   // Collect url for origin.
