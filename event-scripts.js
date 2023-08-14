@@ -112,13 +112,12 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
 });
 }
 
-window.addEventListener("load", function () {
-  let phoneBtns = document.querySelectorAll("[href*='tel:']");
-  // Find all phone links
-  phoneBtns.forEach(function (phoneBtn){
-    // When link is clicked push phone click event
-    phoneBtn.addEventListener('click', function () {
-      dataLayer.push({ event: "phoneClick" });
-    });
+// Find all phone links
+let phoneBtns = document.querySelectorAll("[href*='tel:']");
+// For each phone link
+phoneBtns.forEach(function (phoneBtn){
+  // When link is clicked push phone click event
+  phoneBtn.addEventListener('click', function () {
+    dataLayer.push({ event: "phoneClick" });
   });
 });
