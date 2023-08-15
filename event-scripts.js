@@ -111,13 +111,3 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
   }
 });
 }
-
-// Find all phone links
-let phoneBtns = document.querySelectorAll("[href*='tel:']");
-// For each phone link
-phoneBtns.forEach(function (phoneBtn){
-  // When link is clicked push phone click event
-  phoneBtn.addEventListener('click', function () {
-    dataLayer.push({ event: "phoneClick" });
-  });
-});
