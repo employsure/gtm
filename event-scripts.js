@@ -111,3 +111,13 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
   }
 });
 }
+
+// Collect all phone number links on the page
+let phoneButtons = document.querySelectorAll("a[href^='tel:']");
+phoneButtons.forEach(function(phoneButton) {
+  // Watch each phone number for clicks
+  phoneButton.addEventListener("click", function() {
+    // When clicked fire event
+    dataLayer.push({ event: "phoneButtonClick" });
+  }
+});
