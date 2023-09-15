@@ -113,7 +113,7 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
 }
 
 // Collect all phone number links on the page
-document.addEventListener("gtm.js", function() {
+document.addEventListener(google_tag_manager.loaded, function() {
   let phoneButtons = document.querySelectorAll("a[href*='tel']");
   phoneButtons.forEach(function(phoneButton) {
     // Watch each phone number for clicks
