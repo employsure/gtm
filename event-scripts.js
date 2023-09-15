@@ -120,5 +120,5 @@ phoneButtons.forEach(function(phoneButton) {
     console.log("Fired Event");
     // When clicked fire event
     dataLayer.push({ event: "phoneButtonClick" });
-  }
+  })
 });
