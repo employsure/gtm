@@ -117,6 +117,7 @@ let phoneButtons = document.querySelectorAll("a[href^='tel:']");
 phoneButtons.forEach(function(phoneButton) {
   // Watch each phone number for clicks
   phoneButton.addEventListener("click", function() {
+    console.log("Fired Event");
     // When clicked fire event
     dataLayer.push({ event: "phoneButtonClick" });
   }
