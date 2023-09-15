@@ -113,12 +113,14 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
 }
 
 // Collect all phone number links on the page
-let phoneButtons = document.querySelectorAll("a[href^='tel:']");
-phoneButtons.forEach(function(phoneButton) {
-  // Watch each phone number for clicks
-  phoneButton.addEventListener("click", function() {
-    console.log("Fired Event");
-    // When clicked fire event
-    dataLayer.push({ event: "phoneButtonClick" });
-  })
+document.addEventListener("DOMContentLoaded", function() {
+  let phoneButtons = document.querySelectorAll("a[href*='tel']");
+  phoneButtons.forEach(function(phoneButton) {
+    // Watch each phone number for clicks
+    phoneButton.addEventListener("click", function() {
+      console.log("Fired Event");
+      // When clicked fire event
+      dataLayer.push({ event: "phoneButtonClick" });
+    })
+  });
 });
