@@ -66,7 +66,7 @@ forms.forEach(function (form) {
   }
 });
 
-if(window.drift) {
+window.drift.on('ready',function(api) {
 // Push Conversion Start Event
 window.drift.on("startConversation", function () {
   dataLayer.push({ event: "chatOpen" });
