@@ -66,22 +66,6 @@ forms.forEach(function (form) {
   }
 });
 
-window.drift.on('ready',function(api) {
-// Push Conversion Start Event
-window.drift.on("startConversation", function () {
-  dataLayer.push({ event: "chatOpen" });
-});
-// Push Email Capture Event
-window.drift.on("emailCapture", function () {
-  dataLayer.push({ event: "chatEmailCapture" });
-});
-// Push Phone Capture Event
-window.drift.on("phoneCapture", function () {
-  dataLayer.push({ event: "chatPhoneCapture" });
-});
-}
-
-if(window.Genesys) {
 // PureCloud Conversation Start Event
 Genesys("subscribe", "Conversations.started", function () {
   dataLayer.push({ event: "chatOpen" });
@@ -110,7 +94,6 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
     dataLayer.push({ event: "chatPhoneCapture" });
   }
 });
-}
 
 // Collect all phone number links on the page
 document.addEventListener(google_tag_manager.loaded, function() {
