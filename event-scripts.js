@@ -1,3 +1,4 @@
+/* 
 // Create YouTube iFrame API
 let ytAPI = document.createElement("script");
 ytAPI.src = "https://www.youtube.com/iframe_api";
@@ -53,6 +54,7 @@ async function addEnableJsapiParameter(iframe) {
     iframe.setAttribute("src", src);
   }
 }
+*/
 
 // Collect All Forms
 let forms = document.querySelectorAll("form");
@@ -93,17 +95,4 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
   if (phone) {
     dataLayer.push({ event: "chatPhoneCapture" });
   }
-});
-
-// Collect all phone number links on the page
-document.addEventListener(google_tag_manager.loaded, function() {
-  let phoneButtons = document.querySelectorAll("a[href*='tel']");
-  phoneButtons.forEach(function(phoneButton) {
-    // Watch each phone number for clicks
-    phoneButton.addEventListener("click", function() {
-      console.log("Fired Event");
-      // When clicked fire event
-      dataLayer.push({ event: "phoneButtonClick" });
-    })
-  });
 });
