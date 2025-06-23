@@ -77,11 +77,11 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
   // Store json into object variable
   const jsonObject = data;
   // Pull response text into variable
-  const capture = jsonObject.messages[0].text;
+  const capture = jsonObject?.messages?.[0]?.text;
   // Regex for Email
   const emailRegex = /[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
   // Check string if it matches regex
-  const email = capture.match(emailRegex);
+  const email = capture?.match(emailRegex);
   // If true console log
   if (email) {
     dataLayer.push({ event: "chatEmailCapture" });
@@ -90,7 +90,7 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
   const phoneRegex =
     /^(\+?61|\d)?(0?[2-9]\d{2}|\d{3})([- ]?)?\d{7}|^(\+?61|\d)?\d{10}$/;
   // Check string if it matches regex
-  const phone = capture.match(phoneRegex);
+  const phone = capture?.match(phoneRegex);
   // If true console log
   if (phone) {
     dataLayer.push({ event: "chatPhoneCapture" });
