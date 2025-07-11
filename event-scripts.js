@@ -73,26 +73,88 @@ Genesys("subscribe", "Conversations.started", function () {
   dataLayer.push({ event: "chatOpen" });
 });
 // Capture incoming messages
+// Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
+//   // Store json into object variable
+//   const jsonObject = data;
+//   // Pull response text into variable
+//   const capture = jsonObject?.messages?.[0]?.text;
+//   // Regex for Email
+//   const emailRegex = /[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
+//   // Check string if it matches regex
+//   const email = capture?.match(emailRegex);
+//   // If true console log
+//   if (email) {
+//     dataLayer.push({ event: "chatEmailCapture" });
+//   }
+//   // Regex for Phone number both local and mobile
+//   const phoneRegex =
+//     /^(\+?61|\d)?(0?[2-9]\d{2}|\d{3})([- ]?)?\d{7}|^(\+?61|\d)?\d{10}$/;
+//   // Check string if it matches regex
+//   const phone = capture?.match(phoneRegex);
+//   // If true console log
+//   if (phone) {
+//     dataLayer.push({ event: "chatPhoneCapture" });
+//   }
+// });
+
+// Updated logic to return formatted number
 Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
-  // Store json into object variable
   const jsonObject = data;
-  // Pull response text into variable
   const capture = jsonObject?.messages?.[0]?.text;
-  // Regex for Email
+
+  // Detect locale from hostname
+  const hostname = window.location.hostname;
+  const isNZ = hostname.includes(".co.nz");
+  const isAU = hostname.includes(".com.au");
+
+  // Email regex
   const emailRegex = /[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
-  // Check string if it matches regex
   const email = capture?.match(emailRegex);
-  // If true console log
   if (email) {
-    dataLayer.push({ event: "chatEmailCapture" });
+    dataLayer.push({ 
+      event: "chatEmailCapture",
+      email: email
+    });
   }
-  // Regex for Phone number both local and mobile
-  const phoneRegex =
-    /^(\+?61|\d)?(0?[2-9]\d{2}|\d{3})([- ]?)?\d{7}|^(\+?61|\d)?\d{10}$/;
-  // Check string if it matches regex
-  const phone = capture?.match(phoneRegex);
-  // If true console log
-  if (phone) {
-    dataLayer.push({ event: "chatPhoneCapture" });
+
+  // Regex for AU and NZ mobile numbers
+  const auMobileRegex = /(\+?61|0)?4\d{8}/; // AU mobiles start with 04
+  const nzMobileRegex = /(\+?64|0)?2\d{7,9}/; // NZ mobiles start with 02
+
+  let phoneMatch = null;
+  let formattedNumber = null;
+
+  if (isAU) {
+    phoneMatch = capture?.match(auMobileRegex);
+    if (phoneMatch) {
+      let rawNumber = phoneMatch[0].replace(/[\s-]/g, "");
+      if (rawNumber.startsWith("0")) {
+        formattedNumber = "+61" + rawNumber.slice(1);
+      } else if (!rawNumber.startsWith("+61")) {
+        formattedNumber = "+61" + rawNumber;
+      } else {
+        formattedNumber = rawNumber;
+      }
+    }
+  } else if (isNZ) {
+    phoneMatch = capture?.match(nzMobileRegex);
+    if (phoneMatch) {
+      let rawNumber = phoneMatch[0].replace(/[\s-]/g, "");
+      if (rawNumber.startsWith("0")) {
+        formattedNumber = "+64" + rawNumber.slice(1);
+      } else if (!rawNumber.startsWith("+64")) {
+        formattedNumber = "+64" + rawNumber;
+      } else {
+        formattedNumber = rawNumber;
+      }
+    }
+  }
+
+  if (formattedNumber) {
+    dataLayer.push({
+      event: "chatPhoneCapture",
+      phoneNumber: formattedNumber,
+    });
   }
 });
+
