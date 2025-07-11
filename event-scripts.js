@@ -111,49 +111,34 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
   const emailRegex = /[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
   const email = capture?.match(emailRegex);
   if (email) {
-    dataLayer.push({ 
-      event: "chatEmailCapture",
-      email: email
-    });
+    dataLayer.push({ event: "chatEmailCapture" });
   }
 
-  // Regex for AU and NZ mobile numbers
-  const auMobileRegex = /(\+?61|0)?4\d{8}/; // AU mobiles start with 04
-  const nzMobileRegex = /(\+?64|0)?2\d{7,9}/; // NZ mobiles start with 02
+  // General phone number regex (matches most AU/NZ formats)
+  const phoneRegex = /(\+?\d{1,3})?[\s\-]?\(?\d+\)?[\s\-]?\d+[\s\-]?\d+/;
+  const phoneMatch = capture?.match(phoneRegex);
 
-  let phoneMatch = null;
-  let formattedNumber = null;
+  if (phoneMatch) {
+    let rawNumber = phoneMatch[0].replace(/[^\d+]/g, ""); // Remove non-digit characters except '+'
 
-  if (isAU) {
-    phoneMatch = capture?.match(auMobileRegex);
-    if (phoneMatch) {
-      let rawNumber = phoneMatch[0].replace(/[\s-]/g, "");
-      if (rawNumber.startsWith("0")) {
-        formattedNumber = "+61" + rawNumber.slice(1);
-      } else if (!rawNumber.startsWith("+61")) {
-        formattedNumber = "+61" + rawNumber;
-      } else {
-        formattedNumber = rawNumber;
+    // Normalize to E.164
+    if (rawNumber.startsWith("0")) {
+      if (isAU) {
+        rawNumber = "+61" + rawNumber.slice(1);
+      } else if (isNZ) {
+        rawNumber = "+64" + rawNumber.slice(1);
+      }
+    } else if (!rawNumber.startsWith("+")) {
+      if (isAU) {
+        rawNumber = "+61" + rawNumber;
+      } else if (isNZ) {
+        rawNumber = "+64" + rawNumber;
       }
     }
-  } else if (isNZ) {
-    phoneMatch = capture?.match(nzMobileRegex);
-    if (phoneMatch) {
-      let rawNumber = phoneMatch[0].replace(/[\s-]/g, "");
-      if (rawNumber.startsWith("0")) {
-        formattedNumber = "+64" + rawNumber.slice(1);
-      } else if (!rawNumber.startsWith("+64")) {
-        formattedNumber = "+64" + rawNumber;
-      } else {
-        formattedNumber = rawNumber;
-      }
-    }
-  }
 
-  if (formattedNumber) {
     dataLayer.push({
       event: "chatPhoneCapture",
-      phoneNumber: formattedNumber,
+      phoneNumber: rawNumber,
     });
   }
 });
