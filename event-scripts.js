@@ -111,7 +111,7 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
   const emailRegex = /[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
   const email = capture?.match(emailRegex);
   if (email) {
-    dataLayer.push({ event: "chatEmailCapture" });
+    dataLayer.push({ event: "chatEmailCapture", email: email });
   }
 
   // General phone number regex (matches most AU/NZ formats)
@@ -120,12 +120,14 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
 
   if (phoneMatch) {
     let rawNumber = phoneMatch[0].replace(/[^\d+]/g, ""); // Remove non-digit characters except '+'
-
+    let country = "";
     // Normalize to E.164
     if (rawNumber.startsWith("0")) {
       if (isAU) {
+        country = "AU";
         rawNumber = "+61" + rawNumber.slice(1);
       } else if (isNZ) {
+        country = "NZ";
         rawNumber = "+64" + rawNumber.slice(1);
       }
     } else if (!rawNumber.startsWith("+")) {
@@ -139,6 +141,7 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
     dataLayer.push({
       event: "chatPhoneCapture",
       phoneNumber: rawNumber,
+      country: country
     });
   }
 });
