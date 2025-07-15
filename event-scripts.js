@@ -104,8 +104,8 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
 
   // Detect locale from hostname
   const hostname = window.location.hostname;
-  const isNZ = hostname.includes(".co.nz");
-  const isAU = hostname.includes(".com.au");
+  const isNZ = hostname.includes(".co.nz") || hostname.includes('peninsula-anz-nz');
+  const isAU = hostname.includes(".com.au") || hostname.includes('peninsula-anz-au');
 
   // Email regex
   const emailRegex = /[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
