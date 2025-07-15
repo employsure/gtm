@@ -140,6 +140,7 @@ Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
 
     dataLayer.push({
       event: "chatPhoneCapture",
+      hostname: hostname,
       phoneNumber: rawNumber,
       country: country
     });
