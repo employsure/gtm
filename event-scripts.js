@@ -68,12 +68,19 @@ forms.forEach(function (form) {
   }
 });
 
-function waitForGenesys(callback, retries = 20, interval = 1000) {
+function waitForGenesysReady(callback, retries = 30, interval = 100) {
   const check = () => {
-    if (typeof window.Genesys === "function" && window.Genesys.q) {
-      callback();
-    } else if (retries > 0) {
-      setTimeout(() => waitForGenesys(callback, retries - 1, interval), interval);
+    try {
+      if (typeof window.Genesys === "function" && window.Genesys("subscribe")) {
+        callback();
+        return;
+      }
+    } catch (e) {
+      // Genesys may throw if not ready
+    }
+
+    if (retries > 0) {
+      setTimeout(() => waitForGenesysReady(callback, retries - 1, interval), interval);
     } else {
       console.warn("Genesys not available after waiting.");
     }
