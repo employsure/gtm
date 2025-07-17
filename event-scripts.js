@@ -68,7 +68,7 @@ forms.forEach(function (form) {
   }
 });
 
-function waitForGenesys(callback, retries = 20, interval = 500) {
+function waitForGenesys(callback, retries = 20, interval = 1000) {
   const check = () => {
     if (typeof window.Genesys === "function" && window.Genesys.q) {
       callback();
