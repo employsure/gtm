@@ -88,8 +88,11 @@ function waitForGenesysReady(callback, retries = 30, interval = 100) {
   check();
 }
 
+console.log("Waiting for Genesys...");
 // Use this to safely subscribe to events
 waitForGenesys(() => {
+  console.log("Genesys is ready, subscribing to events...");
+
   Genesys("subscribe", "Conversations.started", function () {
     dataLayer.push({ event: "chatOpen" });
   });
