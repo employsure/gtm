@@ -68,82 +68,56 @@ forms.forEach(function (form) {
   }
 });
 
-// PureCloud Conversation Start Event
-Genesys("subscribe", "Conversations.started", function () {
-  dataLayer.push({ event: "chatOpen" });
-});
-// Capture incoming messages
-// Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
-//   // Store json into object variable
-//   const jsonObject = data;
-//   // Pull response text into variable
-//   const capture = jsonObject?.messages?.[0]?.text;
-//   // Regex for Email
-//   const emailRegex = /[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
-//   // Check string if it matches regex
-//   const email = capture?.match(emailRegex);
-//   // If true console log
-//   if (email) {
-//     dataLayer.push({ event: "chatEmailCapture" });
-//   }
-//   // Regex for Phone number both local and mobile
-//   const phoneRegex =
-//     /^(\+?61|\d)?(0?[2-9]\d{2}|\d{3})([- ]?)?\d{7}|^(\+?61|\d)?\d{10}$/;
-//   // Check string if it matches regex
-//   const phone = capture?.match(phoneRegex);
-//   // If true console log
-//   if (phone) {
-//     dataLayer.push({ event: "chatPhoneCapture" });
-//   }
-// });
+function waitForGenesys(callback, retries = 20, interval = 100) {
+  const check = () => {
+    if (typeof window.Genesys === "function" && window.Genesys.q) {
+      callback();
+    } else if (retries > 0) {
+      setTimeout(() => waitForGenesys(callback, retries - 1, interval), interval);
+    } else {
+      console.warn("Genesys not available after waiting.");
+    }
+  };
+  check();
+}
 
-// Updated logic to return formatted number
-Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
-  const jsonObject = data;
-  const capture = jsonObject?.messages?.[0]?.text;
+// Use this to safely subscribe to events
+waitForGenesys(() => {
+  Genesys("subscribe", "Conversations.started", function () {
+    dataLayer.push({ event: "chatOpen" });
+  });
 
-  // Detect locale from hostname
-  const hostname = window.location.hostname;
-  const isNZ = hostname.includes(".co.nz") || hostname.includes('peninsula-anz-nz');
-  const isAU = hostname.includes(".com.au") || hostname.includes('peninsula-anz-au');
+  Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
+    const capture = data?.messages?.[0]?.text;
+    const hostname = window.location.hostname;
+    const isNZ = hostname.includes(".co.nz") || hostname.includes('peninsula-anz-nz');
+    const isAU = hostname.includes(".com.au") || hostname.includes('peninsula-anz-au');
 
-  // Email regex
-  const emailRegex = /[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
-  const email = capture?.match(emailRegex);
-  if (email) {
-    dataLayer.push({ event: "chatEmailCapture", email: email });
-  }
-
-  // General phone number regex (matches most AU/NZ formats)
-  const phoneRegex = /(\+?\d{1,3})?[\s\-]?\(?\d+\)?[\s\-]?\d+[\s\-]?\d+/;
-  const phoneMatch = capture?.match(phoneRegex);
-
-  if (phoneMatch) {
-    let rawNumber = phoneMatch[0].replace(/[^\d+]/g, ""); // Remove non-digit characters except '+'
-    let country = "";
-    // Normalize to E.164
-    if (rawNumber.startsWith("0")) {
-      if (isAU) {
-        country = "AU";
-        rawNumber = "+61" + rawNumber.slice(1);
-      } else if (isNZ) {
-        country = "NZ";
-        rawNumber = "+64" + rawNumber.slice(1);
-      }
-    } else if (!rawNumber.startsWith("+")) {
-      if (isAU) {
-        rawNumber = "+61" + rawNumber;
-      } else if (isNZ) {
-        rawNumber = "+64" + rawNumber;
-      }
+    const emailRegex = /[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
+    const email = capture?.match(emailRegex);
+    if (email) {
+      dataLayer.push({ event: "chatEmailCapture", email: email });
     }
 
-    dataLayer.push({
-      event: "chatPhoneCapture",
-      hostname: hostname,
-      phoneNumber: rawNumber,
-      country: country
-    });
-  }
-});
+    const phoneRegex = /(\+?\d{1,3})?[\s\-]?\(?\d+\)?[\s\-]?\d+[\s\-]?\d+/;
+    const phoneMatch = capture?.match(phoneRegex);
+    if (phoneMatch) {
+      let rawNumber = phoneMatch[0].replace(/[^\d+]/g, "");
+      let country = "";
+      if (rawNumber.startsWith("0")) {
+        if (isAU) rawNumber = "+61" + rawNumber.slice(1), country = "AU";
+        else if (isNZ) rawNumber = "+64" + rawNumber.slice(1), country = "NZ";
+      } else if (!rawNumber.startsWith("+")) {
+        if (isAU) rawNumber = "+61" + rawNumber, country = "AU";
+        else if (isNZ) rawNumber = "+64" + rawNumber, country = "NZ";
+      }
 
+      dataLayer.push({
+        event: "chatPhoneCapture",
+        hostname,
+        phoneNumber: rawNumber,
+        country
+      });
+    }
+  });
+});
