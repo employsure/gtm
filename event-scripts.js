@@ -98,6 +98,8 @@ waitForGenesysReady(() => {
   });
 
   Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
+    const inbound = data?.messages?.[0]?.direction === "inbound";
+    if (!inbound) return; // Only process inbound messages
     const capture = data?.messages?.[0]?.text;
     const hostname = window.location.hostname;
     const isNZ = hostname.includes(".co.nz") || hostname.includes('peninsula-anz-nz');
