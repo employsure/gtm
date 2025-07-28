@@ -99,7 +99,6 @@ waitForGenesysReady(() => {
 
   Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
     const inbound = data?.messages?.[0]?.direction == "Inbound";
-    console.debug("Inbound?", inbound, "Received message data:", data);
     if (!inbound) return; // Only process inbound messages
     const capture = data?.messages?.[0]?.text;
     const hostname = window.location.hostname;
