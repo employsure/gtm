@@ -118,13 +118,19 @@ waitForGenesysReady(() => {
           else if (isNZ) phoneNumber = "+64" + phoneNumber, country = "NZ";
         }
         
-        dataLayer.push({
-          event: "chatPhoneCapture",
-          hostname,
-          phoneNumber: phoneNumber,
-          country,
-          source: "SessionDataUpdated"
-        });
+        // Validate phone number length
+        const phoneLength = phoneNumber.length;
+        const isValidLength = phoneLength <= 15 && ((isAU && phoneLength >= 12) || (isNZ && phoneLength >= 11));
+        
+        if (isValidLength) {
+          dataLayer.push({
+            event: "chatPhoneCapture",
+            hostname,
+            phoneNumber: phoneNumber,
+            country,
+            source: "SessionDataUpdated"
+          });
+        }
       }
     }
   });
@@ -157,13 +163,19 @@ waitForGenesysReady(() => {
         else if (isNZ) rawNumber = "+64" + rawNumber, country = "NZ";
       }
 
-      dataLayer.push({
-        event: "chatPhoneCapture",
-        hostname,
-        phoneNumber: rawNumber,
-        country,
-        source: "messagesReceived"
-      });
+      // Validate phone number length
+      const phoneLength = rawNumber.length;
+      const isValidLength = phoneLength <= 15 && ((isAU && phoneLength >= 12) || (isNZ && phoneLength >= 11));
+      
+      if (isValidLength) {
+        dataLayer.push({
+          event: "chatPhoneCapture",
+          hostname,
+          phoneNumber: rawNumber,
+          country,
+          source: "messagesReceived"
+        });
+      }
     }
   });
 });
