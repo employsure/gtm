@@ -97,6 +97,39 @@ waitForGenesysReady(() => {
     dataLayer.push({ event: "chatOpen" });
   });
 
+  // Primary: Subscribe to SessionDataUpdated to capture phone from participant data
+  Genesys("subscribe", "gensys-messenger-event", function (event) {
+    if (event?.data?.type === "SessionDataUpdated") {
+      const participantData = event?.data?.participantData;
+      if (participantData?.phoneNumber) {
+        const hostname = window.location.hostname;
+        const isNZ = hostname.includes(".co.nz") || hostname.includes('peninsula-anz-nz');
+        const isAU = hostname.includes(".com.au") || hostname.includes('peninsula-anz-au');
+        
+        let phoneNumber = participantData.phoneNumber;
+        let country = "";
+        
+        // Normalize phone number format
+        if (phoneNumber.startsWith("0")) {
+          if (isAU) phoneNumber = "+61" + phoneNumber.slice(1), country = "AU";
+          else if (isNZ) phoneNumber = "+64" + phoneNumber.slice(1), country = "NZ";
+        } else if (!phoneNumber.startsWith("+")) {
+          if (isAU) phoneNumber = "+61" + phoneNumber, country = "AU";
+          else if (isNZ) phoneNumber = "+64" + phoneNumber, country = "NZ";
+        }
+        
+        dataLayer.push({
+          event: "chatPhoneCapture",
+          hostname,
+          phoneNumber: phoneNumber,
+          country,
+          source: "SessionDataUpdated"
+        });
+      }
+    }
+  });
+
+  // Fallback: Keep existing regex logic for messagesReceived
   Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
     const inbound = data?.messages?.[0]?.direction == "Inbound";
     if (!inbound) return; // Only process inbound messages
@@ -128,7 +161,8 @@ waitForGenesysReady(() => {
         event: "chatPhoneCapture",
         hostname,
         phoneNumber: rawNumber,
-        country
+        country,
+        source: "messagesReceived"
       });
     }
   });
