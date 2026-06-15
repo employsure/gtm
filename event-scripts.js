@@ -68,7 +68,134 @@ forms.forEach(function (form) {
   }
 });
 
-function waitForGenesysReady(callback, retries = 50, interval = 150) {
+const PHONE_LIB_URL = "https://cdn.jsdelivr.net/npm/libphonenumber-js@1.12.8/bundle/libphonenumber-max.js";
+let phoneLibPromise;
+
+function getPhoneContext(hostname) {
+  const isNZ = hostname.includes(".co.nz") || hostname.includes("peninsula-anz-nz");
+  const isAU = hostname.includes(".com.au") || hostname.includes("peninsula-anz-au");
+
+  return {
+    isAU,
+    isNZ,
+    defaultCountry: isAU ? "AU" : isNZ ? "NZ" : undefined,
+  };
+}
+
+function loadPhoneLibrary() {
+  if (window.libphonenumber?.parsePhoneNumberFromString) {
+    return Promise.resolve(window.libphonenumber);
+  }
+
+  if (phoneLibPromise) {
+    return phoneLibPromise;
+  }
+
+  phoneLibPromise = new Promise((resolve, reject) => {
+    const existingScript = document.querySelector(`script[src="${PHONE_LIB_URL}"]`);
+
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(window.libphonenumber), { once: true });
+      existingScript.addEventListener("error", () => reject(new Error("Failed to load phone library.")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = PHONE_LIB_URL;
+    script.async = true;
+    script.onload = () => resolve(window.libphonenumber);
+    script.onerror = () => reject(new Error("Failed to load phone library."));
+    document.head.appendChild(script);
+  }).catch((error) => {
+    console.warn("Phone validation library unavailable.", error);
+    return null;
+  });
+
+  return phoneLibPromise;
+}
+
+function normalizePhoneFallback(candidate, phoneContext) {
+  let phoneNumber = candidate.replace(/(?!^)\+/g, "").replace(/[^\d+]/g, "");
+  let country = "";
+
+  if (!phoneNumber) {
+    return null;
+  }
+
+  if (phoneNumber.startsWith("0")) {
+    if (phoneContext.isAU) {
+      phoneNumber = "+61" + phoneNumber.slice(1);
+      country = "AU";
+    } else if (phoneContext.isNZ) {
+      phoneNumber = "+64" + phoneNumber.slice(1);
+      country = "NZ";
+    }
+  } else if (!phoneNumber.startsWith("+")) {
+    if (phoneContext.isAU) {
+      phoneNumber = "+61" + phoneNumber;
+      country = "AU";
+    } else if (phoneContext.isNZ) {
+      phoneNumber = "+64" + phoneNumber;
+      country = "NZ";
+    }
+  } else if (phoneNumber.startsWith("+61")) {
+    country = "AU";
+  } else if (phoneNumber.startsWith("+64")) {
+    country = "NZ";
+  }
+
+  const phoneLength = phoneNumber.length;
+  const isValidLength = phoneLength <= 15 && ((country === "AU" && phoneLength >= 11) || (country === "NZ" && phoneLength >= 11));
+
+  if (!isValidLength) {
+    return null;
+  }
+
+  return { phoneNumber, country };
+}
+
+function extractPhoneCandidates(text) {
+  if (!text) {
+    return [];
+  }
+
+  const matches = text.match(/(?:\+?\d[\d\s().-]{6,}\d)/g) || [];
+  return matches.map((match) => match.trim());
+}
+
+async function resolveValidPhone(input, phoneContext) {
+  const candidates = Array.isArray(input) ? input : [input];
+  const phoneLib = await loadPhoneLibrary();
+
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+
+    if (phoneLib?.parsePhoneNumberFromString) {
+      try {
+        const parsedPhone = phoneLib.parsePhoneNumberFromString(candidate, phoneContext.defaultCountry);
+        if (parsedPhone?.isValid()) {
+          return {
+            phoneNumber: parsedPhone.number,
+            country: parsedPhone.country || phoneContext.defaultCountry || "",
+          };
+        }
+      } catch (error) {
+        console.warn("Phone parsing failed for candidate.", error);
+      }
+    }
+
+    const fallbackPhone = normalizePhoneFallback(candidate, phoneContext);
+    if (fallbackPhone) {
+      return fallbackPhone;
+    }
+  }
+
+  return null;
+}
+
+function waitForGenesysReady(callback, retries = 100, interval = 250) {
   const check = () => {
     try {
       if (typeof window.Genesys === "function" && window.Genesys("subscribe")) {
@@ -98,36 +225,20 @@ waitForGenesysReady(() => {
   });
 
   // Primary: Subscribe to SessionDataUpdated to capture phone from participant data
-  Genesys("subscribe", "gensys-messenger-event", function (event) {
+  Genesys("subscribe", "gensys-messenger-event", async function (event) {
     if (event?.data?.type === "SessionDataUpdated") {
       const participantData = event?.data?.participantData;
       if (participantData?.phoneNumber) {
         const hostname = window.location.hostname;
-        const isNZ = hostname.includes(".co.nz") || hostname.includes('peninsula-anz-nz');
-        const isAU = hostname.includes(".com.au") || hostname.includes('peninsula-anz-au');
-        
-        let phoneNumber = participantData.phoneNumber;
-        let country = "";
-        
-        // Normalize phone number format
-        if (phoneNumber.startsWith("0")) {
-          if (isAU) phoneNumber = "+61" + phoneNumber.slice(1), country = "AU";
-          else if (isNZ) phoneNumber = "+64" + phoneNumber.slice(1), country = "NZ";
-        } else if (!phoneNumber.startsWith("+")) {
-          if (isAU) phoneNumber = "+61" + phoneNumber, country = "AU";
-          else if (isNZ) phoneNumber = "+64" + phoneNumber, country = "NZ";
-        }
-        
-        // Validate phone number length
-        const phoneLength = phoneNumber.length;
-        const isValidLength = phoneLength <= 15 && ((isAU && phoneLength >= 12) || (isNZ && phoneLength >= 11));
-        
-        if (isValidLength) {
+        const phoneContext = getPhoneContext(hostname);
+        const phone = await resolveValidPhone(participantData.phoneNumber, phoneContext);
+
+        if (phone) {
           dataLayer.push({
             event: "chatPhoneCapture",
             hostname,
-            phoneNumber: phoneNumber,
-            country,
+            phoneNumber: phone.phoneNumber,
+            country: phone.country,
             source: "SessionDataUpdated"
           });
         }
@@ -136,13 +247,12 @@ waitForGenesysReady(() => {
   });
 
   // Fallback: Keep existing regex logic for messagesReceived
-  Genesys("subscribe", "MessagingService.messagesReceived", function ({ data }) {
+  Genesys("subscribe", "MessagingService.messagesReceived", async function ({ data }) {
     const inbound = data?.messages?.[0]?.direction == "Inbound";
     if (!inbound) return; // Only process inbound messages
     const capture = data?.messages?.[0]?.text;
     const hostname = window.location.hostname;
-    const isNZ = hostname.includes(".co.nz") || hostname.includes('peninsula-anz-nz');
-    const isAU = hostname.includes(".com.au") || hostname.includes('peninsula-anz-au');
+    const phoneContext = getPhoneContext(hostname);
 
     const emailRegex = /[a-zA-Z0-9_.-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
     const email = capture?.match(emailRegex);
@@ -150,32 +260,15 @@ waitForGenesysReady(() => {
       dataLayer.push({ event: "chatEmailCapture", email: email });
     }
 
-    const phoneRegex = /(\+?\d{1,3})?[\s\-]?\(?\d+\)?[\s\-]?\d+[\s\-]?\d+/;
-    const phoneMatch = capture?.match(phoneRegex);
-    if (phoneMatch) {
-      let rawNumber = phoneMatch[0].replace(/[^\d+]/g, "");
-      let country = "";
-      if (rawNumber.startsWith("0")) {
-        if (isAU) rawNumber = "+61" + rawNumber.slice(1), country = "AU";
-        else if (isNZ) rawNumber = "+64" + rawNumber.slice(1), country = "NZ";
-      } else if (!rawNumber.startsWith("+")) {
-        if (isAU) rawNumber = "+61" + rawNumber, country = "AU";
-        else if (isNZ) rawNumber = "+64" + rawNumber, country = "NZ";
-      }
-
-      // Validate phone number length
-      const phoneLength = rawNumber.length;
-      const isValidLength = phoneLength <= 15 && ((isAU && phoneLength >= 12) || (isNZ && phoneLength >= 11));
-      
-      if (isValidLength) {
-        dataLayer.push({
-          event: "chatPhoneCapture",
-          hostname,
-          phoneNumber: rawNumber,
-          country,
-          source: "messagesReceived"
-        });
-      }
+    const phone = await resolveValidPhone(extractPhoneCandidates(capture), phoneContext);
+    if (phone) {
+      dataLayer.push({
+        event: "chatPhoneCapture",
+        hostname,
+        phoneNumber: phone.phoneNumber,
+        country: phone.country,
+        source: "messagesReceived"
+      });
     }
   });
 });
