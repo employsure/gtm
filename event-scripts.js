@@ -68,7 +68,7 @@ forms.forEach(function (form) {
   }
 });
 
-const PHONE_LIB_URL = "https://cdn.jsdelivr.net/npm/libphonenumber-js@1.12.8/bundle/libphonenumber-max.js";
+const PHONE_LIB_URL = "https://cdn.jsdelivr.net/npm/libphonenumber-js@1.13.6/bundle/libphonenumber-max.js";
 let phoneLibPromise;
 
 function getPhoneContext(hostname) {
