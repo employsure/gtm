@@ -68,8 +68,18 @@ forms.forEach(function (form) {
   }
 });
 
+// Sites that wire up Genesys analytics themselves set this flag to opt out.
+function isGenesysAnalyticsHandledBySite() {
+  return window.__genesysAnalyticsSubscribed === true;
+}
+
 function waitForGenesysReady(callback, retries = 50, interval = 150) {
   const check = () => {
+    if (isGenesysAnalyticsHandledBySite()) {
+      console.log("Genesys analytics handled by site, skipping.");
+      return;
+    }
+
     try {
       if (typeof window.Genesys === "function" && window.Genesys("subscribe")) {
         callback();
@@ -92,6 +102,7 @@ console.log("Waiting for Genesys...");
 // Use this to safely subscribe to events
 waitForGenesysReady(() => {
   console.log("Genesys is ready, subscribing to events...");
+  window.__genesysAnalyticsSubscribed = true;
 
   Genesys("subscribe", "Conversations.started", function () {
     dataLayer.push({ event: "chatOpen" });

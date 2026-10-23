@@ -1,0 +1,46 @@
+name: Minify event scripts
+
+on:
+  push:
+    branches:
+      - "**"
+    paths:
+      - event-scripts.js
+      - .github/workflows/minify-event-scripts.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: minify-event-scripts-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  minify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Minify JavaScript
+        run: npx --yes terser@5.44.0 event-scripts.js --compress --mangle --output event-scripts.min.js
+
+      - name: Check generated JavaScript
+        run: node --check event-scripts.min.js
+
+      - name: Commit updated minified file
+        run: |
+          git add event-scripts.min.js
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: minify event-scripts.js"
+          git push
