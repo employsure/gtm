@@ -1,0 +1,30 @@
+name: Check event scripts
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-minification:
+    name: Check event script minification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Regenerate minified JavaScript
+        run: npx --yes terser@5.44.0 event-scripts.js --compress --mangle --output event-scripts.min.js
+
+      - name: Check generated JavaScript
+        run: node --check event-scripts.min.js
+
+      - name: Verify committed minified file is up to date
+        run: git diff --exit-code -- event-scripts.min.js
